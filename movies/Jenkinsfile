@@ -10,11 +10,10 @@ pipeline {
     }
 
     environment {
-        //TODO: Customize these variables for your environment
         DEV_PROJECT = "rhn-gps-jnguyen-movies-dev"
         STAGE_PROJECT = "rhn-gps-jnguyen-movies-stage"
         APP_GIT_URL = "https://github.com/jtlnguyen/DO288-apps"
-        NEXUS_SERVER = "http://nexus-common.apps.ocp-na2.prod.nextcle.com"
+        NEXUS_SERVER = "nexus-common.apps.ocp-na2.prod.nextcle.com"
 
         // DO NOT CHANGE THE GLOBAL VARS BELOW THIS LINE
         APP_NAME = "movies"
@@ -82,24 +81,24 @@ pipeline {
                     }
                 }
                 sh '''
-			oc new-app ${APP_NAME}:latest -n ${DEV_PROJECT}
-                	oc expose svc/${APP_AME} -n ${DEV_PROJECT}
-		   '''
+                        oc new-app ${APP_NAME}:latest -n ${DEV_PROJECT}
+                        oc expose svc/${APP_NAME} -n ${DEV_PROJECT}
+                   '''
             }
         }
 
         stage('Wait for deployment in DEV env') {
             steps {
-	   	script {
-		    openshift.withCluster() {
-		      openshift.withProject( "${DEV_PROJECT}" ) {
-		      	openshift.selector("dc", "${APP_NAME}").related('pods').untilEach(1) {
-			  return (it.object().status.phase == "Running")
-			}
-		      }
-		    }
-		}
-	    }
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject( "${DEV_PROJECT}" ) {
+                            openshift.selector("dc", "${APP_NAME}").related('pods').untilEach(1) {
+                                return (it.object().status.phase == "Running")
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         stage('Promote to Staging Env') {
@@ -109,7 +108,7 @@ pipeline {
                 }
                 script {
                     openshift.withCluster() {
-                    	openshift.tag("${DEV_PROJECT}/${APP_NAME}:latest", "${STAGE_PROECT}/${APP_NAME}:stage")
+                    openshift.tag("${DEV_PROJECT}/${APP_NAME}:latest", "${STAGE_PROJECT}/${APP_NAME}:stage")
                     }
                 }
             }
@@ -126,11 +125,11 @@ pipeline {
 
                 echo '### Creating a new app in Staging ###'
                 sh '''
-			oc project ${STAGE_PROJECT}
-			oc new-app --name ${APP_NAME} -i ${APP_NAME}:stage
-			oc expose svc/${APP_NAME}
-            	   '''
-	    }
+                        oc project ${STAGE_PROJECT}
+                        oc new-app --name ${APP_NAME} -i ${APP_NAME}:stage
+                        oc expose svc/${APP_NAME}
+                   '''
+            }
         }
 
         stage('Wait for deployment in Staging') {
